@@ -30,9 +30,6 @@ On linux, my preference is for the make based startup.
 2. Remove old containers after they are run (use --rm)
 3. Sharing the files on main computer with the container (volumes)
 4. Mapping ports from the contain to the host
-
-** and these are the hard ones **
-
 5. All files created by container are owned by root (linux)
 6. Reloading of all app dependancies from repo on each container startup
 7. Your editor/ide/debugger does not work correctly when not "inside" the container
@@ -41,96 +38,124 @@ On linux, my preference is for the make based startup.
 
 # 1. Basic usage of docker
 
+```bash
 docker images
 docker ps -a
+```
 
-build a dev image
- a. Choose a base image (https://hub.docker.com/_/openjdk/)
- 		- used openjdk:8-jdk instead of 8-jdk-alpine because I wanted terminal inside docker. probably would deploy uberjar on openjdk:8-alpine
- b. Write a Dockerfile
- c. docker build -t basicapp .
- d. docker images
+Let's build a dev image
 
+1. Choose a base image (https://hub.docker.com/_/openjdk/)
+ 		* I used openjdk:8-jdk instead of 8-jdk-alpine because I wanted terminal inside docker. probably would deploy uberjar on openjdk:8-alpine
+2. Write a Dockerfile (see basic/Dockerfile)
 
-# 2. Remove old containers after they are run (use --rm option)
+```bash
+docker build -t basicapp .
+docker images
+```
 
+## Run a container
+```bash
 docker run -it basicapp
 docker ps -a
-docker rm ???
+```
+
+
+## Remove containers automatically after they are run (use --rm option)
+```bash
+docker run -it basicapp
+docker ps -a
+
+docker rm the_container_name
 
 docker run --rm -it basicapp
 docker ps -a
+```
 
+## Sharing the files on main computer with the container (volumes)
 
-# 3. Sharing the files on main computer with the container (volumes)
+Use the `-v` option
 
+```bash
 docker run --rm -it -v ~/work/meetup/docker-dev/basic/project:/project basicapp
+```
 
-
-# 4. Mapping ports from the container to the host
+## Mapping ports from the container to the host
 
 - Even though you expose the container port you should also map it, otherwise docker will assign it a random port number on the host.
 
+```bash
 docker ps -a
 
 docker run --rm -it -v ~/work/meetup/docker-dev/basic/project:/project -p 8080:8080 basicapp
+```
 
 
-# Problem 5 - Files Owned By root
-- doesn't seem to be an issue in windows/mac, only an issue on linux
-- inject your current user into the container
-- use a startup script that sets user and permissions to same as current user.
-
-We will see a solution to this in the make-dev solution.
+# Problem: Files Owned By root on Linux
+- doesn't seem to be an issue in windows/mac on recent versions, only an issue on linux
+- we will inject your current user into the running container
+- We will see a solution to this in the make-dev solution.
 
 
-# 6. Reloading of all app dependencies from repo on each container startup
-
+# Problem: Reloading of all app dependencies from repo on each container startup
 - Store the dependencies on the host and share as a volume.
 - For instance with java maven we have the .m2 folder which will shared as volume.
 
 
-# 7. Your editor/ide/debugger does not work correctly when not "inside" the container
-
+# Problem: Your editor/ide/debugger does not work correctly when not "inside" the container
 - the solution is to use SSHFS
   * install ssh in the container
-  * use SSHFS to mount the root of the container
+  * use SSHFS to mount to the root of the container
   * do some special simlink fixes
   * you should be able to use the file system as normal.
-
-
-- I won't be attempting to show this today.
+  * see reference links below for more details.
+- I won't be attempting to show this today
 
 
 
 
 # Docker Compose Example
 
-show the compose files...
+Why compose? Because it can start up multiple linked containers easily.
 
+- Go over compose-dev/docker-compose.yml
+- Go over compose-dev/web/Dockerfile
+```bash
 cd compose-dev
 docker-compose build
 docker-compose up
+```
 
-- Then from another terminal
+Connect to web instance from another terminal
+```bash
 docker exec -it composedev_web_1 bash
 
 lein version
-
 lein new hello1
+```
 
-set the repl options in projet clj to listen on right port and host
-:repl-options {:host "0.0.0.0" :port 9090}
+set the REPL options in project clj to listen on right port and host
 
-start a repl
+```clojure
+(defproject hello1 "0.1.0-SNAPSHOT"
+  :dependencies [[org.clojure/clojure "1.8.0"]]
+
+  :repl-options {:host "0.0.0.0" :port 9090})
+```
+
+start a REPL
+```bash
 lein repl
+```
 
-connect to the repl from atom and execute some code
+connect to the REPL inside the docker container from atom and execute some code
 
+cmd + shift + p => search repl remote => enter port
 
 shutdown the compose instances
+```bash
 docker-compose down
-
+```
 
 
 
@@ -138,28 +163,43 @@ docker-compose down
 
 # Using make to setup a dev container
 
-look at Dockerfile
-look at startup.sh
-look at makefile
+Why make instead of compose? Because it allows us more fine grained control and to pass current user information to containsers as environment variables. It doesn't however start up multiple containers. It should also work well with other container systems such as rocket.
 
+- Go over make-dev/Dockerfile
+- Go over make-dev/startup.sh
+- Go over make-dev/Makefile
+
+```bash
 cd make-dev/web
 docker build -t makedev_web .
-
+docker images
 make shell
+```
 
-
+We should now have a terminal with java/lein, and user should be host user.
+```bash
 lein new hello2
+```
 
-set the repl options
-:repl-options {:host "0.0.0.0" :port 9090}
+Set the REPL options
+```clojure
+(defproject hello2 "0.1.0-SNAPSHOT"
+  :dependencies [[org.clojure/clojure "1.8.0"]]
 
+  :repl-options {:host "0.0.0.0" :port 9090})
+```
+
+Now start a REPL
+```bash
 cd hello2
 lein repl
+```
+
+
 
 
 
 # Reference Links
-
 https://github.com/markmandel/wrapping-clojure-tooling-in-containers
 https://www.youtube.com/watch?v=FtkHgQSSb3c
 
