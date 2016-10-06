@@ -152,6 +152,11 @@ connect to the REPL inside the docker container from atom and execute some code
 
 cmd + shift + p => search repl remote => enter port
 
+
+Open a clojure source file and execute some expressions.
+cmd + alt + b
+
+
 shutdown the compose instances
 ```bash
 docker-compose down
@@ -195,6 +200,12 @@ cd hello2
 lein repl
 ```
 
+connect to the REPL inside the docker container from atom and execute some code
+
+cmd + shift + p => search repl remote => enter port
+
+Open a clojure source file and execute some expressions.
+cmd + alt + b
 
 
 
