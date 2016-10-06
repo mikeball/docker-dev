@@ -1,0 +1,13 @@
+version: '2'
+services:
+  web:
+    build: ./web
+    stdin_open: true
+    environment:
+      - VAR1=todo
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - ./web:/project
+      - ~/.m2:/root/.m2
